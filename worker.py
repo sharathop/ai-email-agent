@@ -1,38 +1,96 @@
-import time
-
 from database import SessionLocal
 from model import Email
+from queue_service import redis_client
 
-from llm import generate_reply
+from agent.classifier import classify_email
+from agent.router import execute_action
 
+import redis
 
 print("Worker Started...")
 
-
 while True:
 
-    db = SessionLocal()
+    try:
 
-    email = (
-        db.query(Email)
-        .filter(Email.status == "Pending")
-        .first()
-    )
+        print("Waiting for jobs...")
 
-    if email:
+        task = redis_client.brpop(
+            "email_queue",
+            timeout=5
+        )
 
-        print(f"Processing Email {email.id}")
+        print("Task received:", task)
 
-        reply = generate_reply(email)
+        if task is None:
+            continue
 
-        email.draft = reply
+        email_id = int(task[1])
 
-        email.status = "Completed"
+        db = SessionLocal()
 
-        db.commit()
+        email = db.query(Email).filter(
+            Email.id == email_id
+        ).first()
 
-        print("Completed")
+        if email:
 
-    db.close()
+            print(f"\nProcessing Email {email.id}")
 
-    time.sleep(2)
+            # =====================================
+            # Step 1 : Classification
+            # =====================================
+
+            classification = classify_email(
+
+                email.subject,
+
+                email.body
+
+            )
+
+            print("\n========== CLASSIFICATION ==========\n")
+
+            print(classification)
+
+            print("\n====================================\n")
+
+            # Save category
+
+            email.category = classification["category"]
+
+            # =====================================
+            # Step 2 : Execute Agent
+            # =====================================
+
+            reply = execute_action(
+
+                email,
+
+                classification
+
+            )
+
+            # =====================================
+            # Step 3 : Save Reply
+            # =====================================
+
+            email.draft = reply
+
+            email.status = "Completed"
+
+            db.commit()
+
+            print(f"Completed Email {email.id}")
+
+        db.close()
+
+    except redis.exceptions.TimeoutError:
+
+        continue
+
+    except Exception as e:
+
+        print("\nWorker Error\n")
+
+        print(e)

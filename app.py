@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from database import Base
 from database import engine
+from queue_service import redis_client
 from database import get_db
 
 from model import Email
@@ -39,15 +40,18 @@ def receive_email(
     )
 
     db.add(email)
-
     db.commit()
-
     db.refresh(email)
 
+# Push email ID into Redis queue
+    redis_client.lpush("email_queue", email.id)
+    print(f"Queued Email ID: {email.id}")
+    print("Queue Length:", redis_client.llen("email_queue"))
+
     return {
-    "message": "Email received successfully.",
-    "email_id": email.id,
-    "status": email.status
+         "message": "Email queued successfully",
+         "email_id": email.id,
+         "status": email.status
 }
 
 @app.get("/emails")

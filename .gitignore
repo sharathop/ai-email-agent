@@ -1,4 +1,16 @@
+# Database
 *.db
-venv
+
+# Virtual Environment
+venv/
+.venv/
+
+# Environment Variables
 .env
-**/__pycache__/
+
+# Python Cache
+__pycache__/
+*.pyc
+
+# ChromaDB (generated vector database)
+chroma_db/
