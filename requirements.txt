@@ -21,7 +21,7 @@ pypdf
 
 groq
 
-torch
+pip install torch --index-url https://download.pytorch.org/whl/cpu
 transformers
 
 python-multipart
