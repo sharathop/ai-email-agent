@@ -199,16 +199,6 @@ The interactive dashboard allows users to:
 - Read AI-generated drafts
 - Test the complete AI pipeline from a single interface
 
-> *(Add screenshots here)*
-
-```
-images/
-├── dashboard.png
-├── compose-email.png
-└── generated-draft.png
-```
-
----
 
 # 📨 Example Workflow
 
